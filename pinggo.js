@@ -173,7 +173,7 @@ func_index = function (index = null) {
 }
 
 
-var timeout = 1000;
+var timeout = 2000;
 
 // Login
 func_login(timeout);
@@ -203,7 +203,9 @@ setTimeout(() => {
             // Next Page
             var nextPage = $('#list-page-container .page-item.active').next();
             if (nextPage.text()) {
-                location.href = nextPage.attr('href');
+                pageHref = nextPage.attr('href');
+                cookie_set('_page_href', pageHref)
+                location.href = pageHref;
             } else {
                 location.href = func_next_category();
             }
@@ -225,6 +227,7 @@ setTimeout(() => {
 
 // Send Ajax Complete
 send_ajax_complete = function (res) {
-    console.log('asdfasd');
-    location.href = func_current_category();
+    setTimeout(() => {
+        location.href = cookie_get('_page_href');
+    }, timeout);
 }
