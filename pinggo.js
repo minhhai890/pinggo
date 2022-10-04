@@ -1,3 +1,7 @@
+var elementProductColor = '#config-item-fashion_fashion_color .list-config-select button.config-select-item';
+var elementProductSize = '#config-item-fashion_fashion_size .list-config-select button.config-select-item';
+var elementProductType = '#config-item-fashion_option .list-config-select button.config-select-item';
+
 
 // Get Cookie
 cookie_set = function (name, value) {
@@ -28,12 +32,16 @@ func_login = function (timeout = 500) {
 // All Categories
 func_categories = function () {
     var categories = cookie_get('_categories');
-    if (!categories || categories == undefined) {
-        categories = [];
-        $('a.component-category-less-than-5').each(function (index, item) {
-            categories[index] = $(item).attr('href')
-        });
-        cookie_set('_categories', categories);
+    if (!categories || categories == 'undefined' || categories == undefined) {
+        if (location.pathname != '/home') {
+            location.href = '/home';
+        } else {
+            categories = [];
+            $('a.component-category-less-than-5').each(function (index, item) {
+                categories[index] = $(item).attr('href')
+            });
+            cookie_set('_categories', categories);
+        }
     } else {
         categories = categories.split(',');
     }
@@ -43,7 +51,7 @@ func_categories = function () {
 // Current Categories
 func_current_category = function () {
     var current = cookie_get('_current_category');
-    if (!current || current == undefined) {
+    if (!current || current == 'undefined' || current == undefined) {
         categories = func_categories();
         current = categories.shift();
         cookie_set('_current_category', current);
@@ -94,25 +102,73 @@ func_product_prices = function () {
     return {
         'market': func_get_number($('#origin-price').text()),
         'price': func_get_number($('#product-new-price').text()),
-        'min': func_get_number($('#consumer-min-price').text()),
-        'max': func_get_number($('#consumer-max-price').text()),
         'discount': func_get_number($('#max-rev-share').text()),
     };
 }
 
+// Get Product Color Attribute
+func_product_color = function () {
+    results = [];
+    $(elementProductColor).each(function (index, item) {
+        results[$(item).attr('data-option-id')] = $(item).text();
+    });
+    return results;
+}
+
+// Get Product Size Attribute
+func_product_size = function () {
+    results = [];
+    $(elementProductSize).each(function (index, item) {
+        results[$(item).attr('data-option-id')] = $(item).text();
+    });
+    return results;
+}
+
+// Get Product Type Attribute
+func_product_type = function () {
+    results = [];
+    $(elementProductType).each(function (index, item) {
+        results[$(item).attr('data-option-id')] = $(item).text();
+    });
+    return results;
+}
+
+// Get Product Content
+func_product_content = function () {
+    content = '<h3>Thông tin sản phẩm</h3>' + func_remove_id_class($('#content-nav-specifications div.form-content').html());
+    content += '<h3>Thông tin chi tiêt</h3>' + func_remove_id_class($('#content-nav-description-detail').html());
+    content += '<h3>Hướng dẫn sử dụng' + func_remove_id_class($('#content-nav-user-guide div.form-content').html());
+    return content;
+}
+
+// Get Product Content Share
+func_product_content_share = function () {
+    var results = null;
+    var element = '#content-share-container';
+    if ($(element).length) {
+        $(element + ' .component-url-image').each(function (index, item) {
+            results[index] = $(item).text();
+        });
+    }
+    return results;
+}
+
 // Get Product Instroduct
-func_product_introduct = function () {
-    return JSON.stringify({
+func_product_instroduct = function () {
+    return {
         'name': $('#product-name').text(),
         'url': location.href,
         'prices': func_product_prices(),
         'images': func_product_images(),
-        'content': {
-            'info': func_remove_id_class($('#content-nav-specifications div.form-content').html()),
-            'detail': func_remove_id_class($('#content-nav-description-detail').html()),
-            'support': func_remove_id_class($('#content-nav-user-guide div.form-content').html()),
-        }
-    });
+        'description': '',
+        'attribute': {
+            'color': func_product_color(),
+            'size': func_product_size(),
+            'type': func_product_type(),
+        },
+        'content': func_product_content(),
+        'share': func_product_content_share()
+    };
 }
 
 // Send Ajax
@@ -172,62 +228,79 @@ func_index = function (index = null) {
     return index;
 }
 
+// Sync New Product
+func_sync_new_product = function (host, timeout) {
+    setTimeout(() => {
 
-var timeout = 2000;
+        // Params
+        var category = func_current_category();
+        var breadcrumb = func_breadcrumb();
+        url = location.origin + location.pathname;
 
-// Login
-func_login(timeout);
+        // Select Item
+        if (url == category) {
 
-// Init
-setTimeout(() => {
-
-    // Params
-    var category = func_current_category();
-    var breadcrumb = func_breadcrumb();
-    url = location.origin + location.pathname;
-
-    // Select Item
-    if (url == category) {
-
-        // Process
-        var index = func_index();
-        var elementItem = '#list-product .product-item:eq(' + index + ')';
-        if ($(elementItem).length) {
-            // Next index
-            func_index(parseInt(index) + 1);
-            // Redirect to item        
-            location.href = $(elementItem).attr('href');
-        } else {
-            // Reset index
-            func_index(0);
-            // Next Page
-            var nextPage = $('#list-page-container .page-item.active').next();
-            if (nextPage.text()) {
-                pageHref = nextPage.attr('href');
-                cookie_set('_page_href', pageHref)
-                location.href = pageHref;
+            var index = func_index();
+            var elementItem = '#list-product .product-item:eq(' + index + ')';
+            if ($(elementItem).length) {
+                // Next index
+                func_index(parseInt(index) + 1);
+                // Redirect to item        
+                location.href = $(elementItem).attr('href');
             } else {
-                location.href = func_next_category();
+                // Reset index
+                func_index(0);
+                // Next Page
+                var nextPage = $('#list-page-container .page-item.active').next();
+                if (nextPage.text()) {
+                    pageHref = nextPage.attr('href');
+                    cookie_set('_page_href', pageHref)
+                    location.href = pageHref;
+                } else {
+                    location.href = func_next_category();
+                }
+            }
+        } else {
+            if (breadcrumb.indexOf(category) < 0) {
+                location.href = category;
             }
         }
-    } else {
-        if (breadcrumb.indexOf(category) < 0) {
-            location.href = category;
-        }
-    }
 
-    // Send Item
-    setTimeout(() => {
-        func_send_ajax('https://linahouse.com.vn/', {
-            'item': func_product_introduct(),
-            'breadcrumb': breadcrumb
-        }, 'send_ajax_complete');
-    }, timeout);
-}, timeout);
-
-// Send Ajax Complete
-send_ajax_complete = function (res) {
-    setTimeout(() => {
-        location.href = cookie_get('_page_href');
+        // Send Item
+        setTimeout(() => {
+            var products = func_product_instroduct();
+            products.breadcrumb = breadcrumb;
+            func_send_ajax(host + '/sync/new', { 'item': JSON.stringify(products) }, function (res) {
+                setTimeout(() => {
+                    nextPage = cookie_get('_page_href');
+                    if (!nextPage || nextPage == 'undefined' || nextPage == undefined) {
+                        location.href = func_current_category();
+                    } else {
+                        location.href = nextPage;
+                    }
+                }, timeout);
+            });
+        }, timeout);
     }, timeout);
 }
+
+// Sync Update product
+func_sync_update_product = function (host, timeout) {
+
+}
+
+// Sync Register Order
+func_register_order = function (host, timeout) {
+
+}
+
+
+// Variable
+var timeout = 2000;
+var host = 'https://pinggo.linahouse.com.vn';
+
+// Running
+func_login(timeout);
+func_sync_new_product(host, $timeout);
+
+
