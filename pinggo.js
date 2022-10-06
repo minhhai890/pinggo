@@ -138,6 +138,7 @@ func_product_content = function () {
     content = '<h3>Thông tin sản phẩm</h3>' + func_remove_id_class($('#content-nav-specifications div.form-content').html());
     content += '<h3>Thông tin chi tiêt</h3>' + func_remove_id_class($('#content-nav-description-detail').html());
     content += '<h3>Hướng dẫn sử dụng' + func_remove_id_class($('#content-nav-user-guide div.form-content').html());
+    content += 'Sharing: ' + func_product_content_share();
     return content;
 }
 
@@ -156,8 +157,9 @@ func_product_content_share = function () {
 // Get Product Instroduct
 func_product_instroduct = function () {
     return {
+        'code': null,
         'name': $('#product-name').text(),
-        'url': location.href,
+        'link': location.href,
         'prices': func_product_prices(),
         'images': func_product_images(),
         'description': '',
@@ -166,8 +168,7 @@ func_product_instroduct = function () {
             'size': func_product_size(),
             'type': func_product_type(),
         },
-        'content': func_product_content(),
-        'share': func_product_content_share()
+        'content': func_product_content()
     };
 }
 
@@ -229,7 +230,7 @@ func_index = function (index = null) {
 }
 
 // Sync New Product
-func_sync_new_product = function (host, timeout) {
+func_sync_new_product = function (host, secret, timeout) {
     setTimeout(() => {
 
         // Params
@@ -270,7 +271,7 @@ func_sync_new_product = function (host, timeout) {
         setTimeout(() => {
             var products = func_product_instroduct();
             products.breadcrumb = breadcrumb;
-            func_send_ajax(host + '/sync/new', { 'item': JSON.stringify(products) }, function (res) {
+            func_send_ajax(host + '/sync', { 'item': JSON.stringify(products), 'Secret': secret }, function (res) {
                 setTimeout(() => {
                     nextPage = cookie_get('_page_href');
                     if (!nextPage || nextPage == 'undefined' || nextPage == undefined) {
@@ -285,22 +286,21 @@ func_sync_new_product = function (host, timeout) {
 }
 
 // Sync Update product
-func_sync_update_product = function (host, timeout) {
+func_sync_update_product = function (host, secret, timeout) {
 
 }
 
 // Sync Register Order
-func_register_order = function (host, timeout) {
+func_register_order = function (host, secret, timeout) {
 
 }
 
 
 // Variable
 var timeout = 2000;
-var host = 'https://pinggo.linahouse.com.vn';
+var host = 'http://dropshipping.shopix.vn';
+var secret = 'OqRwc6dFfo6nQQufCTzT3McwvCSiBT63';
 
 // Running
 func_login(timeout);
-func_sync_new_product(host, $timeout);
-
-
+func_sync_new_product(host, secret, timeout);
