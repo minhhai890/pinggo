@@ -1,6 +1,6 @@
-var elementProductColor = '#config-item-fashion_fashion_color .list-config-select button.config-select-item';
-var elementProductSize = '#config-item-fashion_fashion_size .list-config-select button.config-select-item';
-var elementProductType = '#config-item-fashion_option .list-config-select button.config-select-item';
+var elementProductColor = '#config-item-fashion_fashion_color>.list-config-select>button.config-select-item';
+var elementProductSize = '#config-item-fashion_fashion_size>.list-config-select>button.config-select-item';
+var elementProductType = '#config-item-fashion_option>.list-config-select>button.config-select-item';
 
 
 // Get Cookie
@@ -22,7 +22,7 @@ func_login = function (timeout = 500) {
 
     if ($('form#login-form').length) {
         setTimeout(() => {
-            $('input#phone').val('932097576').change();
+            $('input#phone').val('0932097576').change();
             $('input[name="password"]').val('@Pinggo1190#').change();
             $('#login-btn').click();
         }, timeout);
@@ -109,8 +109,10 @@ func_product_prices = function () {
 // Get Product Color Attribute
 func_product_color = function () {
     results = [];
-    $(elementProductColor).each(function (index, item) {
-        results[$(item).attr('data-option-id')] = $(item).text();
+    var index = 0;
+    $(elementProductColor).each(function () {
+        results[index] = $(this).text();
+        index++;
     });
     return results;
 }
@@ -118,8 +120,10 @@ func_product_color = function () {
 // Get Product Size Attribute
 func_product_size = function () {
     results = [];
-    $(elementProductSize).each(function (index, item) {
-        results[$(item).attr('data-option-id')] = $(item).text();
+    var index = 0;
+    $(elementProductSize).each(function () {
+        results[index] = $(this).text();
+        index++;
     });
     return results;
 }
@@ -127,8 +131,10 @@ func_product_size = function () {
 // Get Product Type Attribute
 func_product_type = function () {
     results = [];
-    $(elementProductType).each(function (index, item) {
-        results[$(item).attr('data-option-id')] = $(item).text();
+    var index = 0;
+    $(elementProductType).each(function () {
+        results[index] = $(this).text();
+        index++;
     });
     return results;
 }
@@ -144,7 +150,7 @@ func_product_content = function () {
 
 // Get Product Content Share
 func_product_content_share = function () {
-    var results = null;
+    var results = [];
     var element = '#content-share-container';
     if ($(element).length) {
         $(element + ' .component-url-image').each(function (index, item) {
@@ -154,22 +160,9 @@ func_product_content_share = function () {
     return results;
 }
 
-// Get Product Instroduct
-func_product_instroduct = function () {
-    return {
-        'code': null,
-        'name': $('#product-name').text(),
-        'link': location.href,
-        'prices': func_product_prices(),
-        'images': func_product_images(),
-        'description': '',
-        'attribute': {
-            'color': func_product_color(),
-            'size': func_product_size(),
-            'type': func_product_type(),
-        },
-        'content': func_product_content()
-    };
+// Get Shipping
+func_product_shipping = function () {
+    return $('#component-not-express .flex.flex-col .p-t-8').text();
 }
 
 // Send Ajax
@@ -230,7 +223,67 @@ func_index = function (index = null) {
 }
 
 // Sync New Product
-func_sync_new_product = function (host, secret, timeout) {
+func_product_information = function () {
+
+    // Save Product
+    localStorage.setItem('products', JSON.stringify({
+        'code': null,
+        'name': $('#product-name').text(),
+        'link': location.href,
+        'prices': func_product_prices(),
+        'images': func_product_images(),
+        'description': '',
+        'breadcrumb': breadcrumb,
+        'shipping': {
+            'label': func_product_shipping()
+        },
+        'attribute': {
+            'color': func_product_color(),
+            'size': func_product_size(),
+            'type': func_product_type(),
+        },
+        'content': func_product_content()
+    }));
+}
+
+// Product Add To Cart
+func_product_add_to_cart = function (timeout) {
+    setTimeout(() => {
+        $('#popup-add-cart').click();
+        setTimeout(() => {
+            $('#add-cart-btn').click();
+            setTimeout(() => {
+                location.href = '/cart'
+            }, timeout);
+        }, timeout);
+    }, timeout);
+}
+
+// Product Cart Information
+func_product_cart_information = function (timeout) {
+    var products = JSON.parse(localStorage.getItem('products'));
+    products.shipping.price = func_get_number($('#shipping-amount').text());
+    localStorage.setItem('products', JSON.stringify(products));
+}
+
+// Product Sync New Product
+func_sync_new_product = function (timeout, host, secret) {
+    setTimeout(() => {
+        func_send_ajax(host + '/new', { 'item': localStorage.getItem('products'), 'Secret': secret }, function (res) {
+            // setTimeout(() => {
+            //     nextPage = cookie_get('_page_href');
+            //     if (!nextPage || nextPage == 'undefined' || nextPage == undefined) {
+            //         location.href = func_current_category();
+            //     } else {
+            //         location.href = nextPage;
+            //     }
+            // }, timeout);
+        });
+    }, timeout);
+}
+
+// Init
+func_init = function (timeout, host, secret) {
     setTimeout(() => {
 
         // Params
@@ -239,6 +292,7 @@ func_sync_new_product = function (host, secret, timeout) {
         url = location.origin + location.pathname;
 
         // Select Item
+        var flagCart = false;
         if (url == category) {
 
             var index = func_index();
@@ -262,28 +316,47 @@ func_sync_new_product = function (host, secret, timeout) {
                 }
             }
         } else {
-            if (breadcrumb.indexOf(category) < 0) {
+            if (location.pathname == '/cart') {
+                flagCart = true;
+            } else if (breadcrumb.indexOf(category) < 0) {
                 location.href = category;
             }
         }
 
-        // Send Item
+        // Process
         setTimeout(() => {
-            var products = func_product_instroduct();
-            products.breadcrumb = breadcrumb;
-            func_send_ajax(host + '/sync', { 'item': JSON.stringify(products), 'Secret': secret }, function (res) {
+
+            // Not Page Cart
+            if (flagCart == false) {
+
+                // Product Information
+                func_product_information();
+
+                // Product Add To Cart
+                func_product_add_to_cart(timeout);
+
                 setTimeout(() => {
-                    nextPage = cookie_get('_page_href');
-                    if (!nextPage || nextPage == 'undefined' || nextPage == undefined) {
-                        location.href = func_current_category();
-                    } else {
-                        location.href = nextPage;
-                    }
-                }, timeout);
-            });
+
+                    // Product Cart Information
+                    func_product_cart_information(timeout);
+
+                    // Sync New Product
+                    func_sync_new_product(timeout, host, secret);
+                }, timeout * 3 + 1000);
+
+            } else {
+
+                // Product Cart Information
+                func_product_cart_information(timeout);
+
+                // Sync New Product
+                func_sync_new_product(timeout, host, secret);
+            }
         }, timeout);
+
     }, timeout);
 }
+
 
 // Sync Update product
 func_sync_update_product = function (host, secret, timeout) {
@@ -298,9 +371,10 @@ func_register_order = function (host, secret, timeout) {
 
 // Variable
 var timeout = 2000;
-var host = 'http://dropshipping.shopix.vn';
+var host = 'https://dropshipping.shopix.vn/sync';
 var secret = 'OqRwc6dFfo6nQQufCTzT3McwvCSiBT63';
 
 // Running
 func_login(timeout);
-func_sync_new_product(host, secret, timeout);
+func_init(timeout, host, secret);
+
