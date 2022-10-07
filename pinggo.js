@@ -160,11 +160,6 @@ func_product_content_share = function () {
     return results;
 }
 
-// Get Shipping
-func_product_shipping = function () {
-    return $('#component-not-express .flex.flex-col .p-t-8').text();
-}
-
 // Send Ajax
 func_send_ajax = function (url, params = {}, callback = null) {
 
@@ -235,7 +230,7 @@ func_product_information = function () {
         'description': '',
         'breadcrumb': breadcrumb,
         'shipping': {
-            'label': func_product_shipping()
+            'label': $('#component-not-express .flex.flex-col .p-t-8').text()
         },
         'attribute': {
             'color': func_product_color(),
