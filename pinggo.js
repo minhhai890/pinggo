@@ -11,16 +11,19 @@ var elementProductSize = '#config-item-fashion_fashion_size>.list-config-select>
 var elementProductType = '#config-item-fashion_option>.list-config-select>button.config-select-item';
 var elementProductCart = '#section-info>.list-order-group>.order-item';
 
-// Check Login
-if ($('a.nav-link.btn-login').length) {
-    location.href = '/login';
-}
-if ($('form#login-form').length) {
-    setTimeout(() => {
-        $('input#phone').val(username).change();
-        $('input[name="password"]').val(password).change();
-        $('#login-btn').click();
-    }, timeout);
+// Login
+func_login = function () {
+    // Check Login
+    if ($('a.nav-link.btn-login').length) {
+        location.href = '/login';
+    }
+    if ($('form#login-form').length) {
+        setTimeout(() => {
+            $('input#phone').val(username).change();
+            $('#box-input input[type="password"]').val(password).change();
+            $('#login-btn').click();
+        }, timeout);
+    }
 }
 
 // Set Time Out
@@ -71,9 +74,10 @@ func_categories = function () {
 func_category_current = function () {
     var current = cookie_get('_current_category');
     if (!current || current == 'undefined' || current == undefined) {
-        categories = func_categories();
-        current = categories.shift();
-        cookie_set('_current_category', current);
+        if (categories = func_categories()) {
+            current = categories.shift();
+            cookie_set('_current_category', current);
+        }
     }
     return current;
 }
@@ -225,9 +229,9 @@ func_product_attribute = function () {
 // Get Product Stock
 func_product_stock = function () {
     if ($('#view-out-of-stock').is(':visible')) {
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 // Get Product Content
@@ -386,8 +390,12 @@ func_drop_shipping_sync_order = function () {
 }
 
 // Running
-if (orders = cookie_get('_sync_orders')) {
-    func_drop_shipping_sync_order();
+if ($('a.nav-link.btn-login').length || $('form#login-form').length) {
+    func_login();
 } else {
-    func_drop_shipping_sync_product();
+    if (orders = cookie_get('_sync_orders')) {
+        func_drop_shipping_sync_order();
+    } else {
+        func_drop_shipping_sync_product();
+    }
 }
